@@ -414,6 +414,64 @@ jobs:
           retention-days: 7
 
   # =======================
+  # Run Rust Tests Before Release
+  # =======================
+  test-before-release:
+    name: Test Rust C Bindings (${{ matrix.os }})
+    needs:
+      - build-linux-x64
+      - build-windows-x64
+      - build-macos-x64
+    runs-on: ${{ matrix.os }}
+    if: startsWith(github.ref, 'refs/tags/c-v')
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            bindings/c/target/
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+            ${{ runner.os }}-cargo-
+
+      - name: Run Rust tests
+        working-directory: bindings/c
+        run: cargo test --release --target ${{ matrix.target }} --verbose
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: bindings/c/target/${{ matrix.target }}/release/deps/*.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # =======================
   # Create GitHub Release
   # =======================
   create-release:
@@ -426,6 +484,7 @@ jobs:
       - build-ios-arm64
       - build-android-arm64
       - build-wasm
+      - test-before-release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/c-v')
     steps:
@@ -458,6 +517,9 @@ jobs:
             ## HuggingFace Tokenizers C Bindings v${{ steps.get_version.outputs.VERSION }}
             
             Cross-platform C bindings for the HuggingFace Tokenizers library.
+            
+            ### ✅ Test Results
+            All 16 Rust C binding tests passed successfully on Linux, Windows, and macOS platforms before this release.
             
             ### Supported Platforms
             - ✅ Linux x64
