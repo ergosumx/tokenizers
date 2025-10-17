@@ -1,0 +1,17 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🐛 Core Library Bug (not C bindings)
+    url: https://github.com/huggingface/tokenizers/issues
+    about: For bugs in the core Rust library, Python bindings, or Node.js bindings
+  - name: 💬 General Discussion
+    url: https://github.com/huggingface/tokenizers/discussions
+    about: For questions about tokenization in general or HuggingFace models
+  - name: 🔷 ErgoX VecraX (.NET wrapper)
+    url: https://github.com/ergox/vecrax/issues
+    about: For issues with the C# wrapper library (ErgoX.VecraX.ML.NLP.Tokenizers)
+  - name: 📚 HuggingFace Documentation
+    url: https://huggingface.co/docs/tokenizers
+    about: Official documentation for HuggingFace Tokenizers
+  - name: 🤗 HuggingFace Forums
+    url: https://discuss.huggingface.co/
+    about: Community discussions and support
