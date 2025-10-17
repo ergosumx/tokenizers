@@ -1,0 +1,498 @@
+name: Release C Bindings
+
+on:
+  push:
+    tags:
+      - 'c-v*.*.*'  # Triggers on tags like c-v0.1.0, c-v1.0.0, etc.
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # =======================
+  # Linux x64 Build
+  # =======================
+  build-linux-x64:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build C bindings
+        working-directory: bindings/c
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+          strip target/x86_64-unknown-linux-gnu/release/libtokenizers.so
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/linux-x64/native
+          cp bindings/c/target/x86_64-unknown-linux-gnu/release/libtokenizers.so artifacts/linux-x64/native/
+          cp bindings/c/README.md artifacts/linux-x64/
+          tar -czf tokenizers-c-linux-x64.tar.gz -C artifacts/linux-x64 .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-linux-x64
+          path: tokenizers-c-linux-x64.tar.gz
+          retention-days: 7
+
+  # =======================
+  # Windows x64 Build
+  # =======================
+  build-windows-x64:
+    name: Build Windows x64
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build C bindings
+        working-directory: bindings/c
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Package artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/win-x64/native
+          Copy-Item bindings/c/target/x86_64-pc-windows-msvc/release/tokenizers.dll artifacts/win-x64/native/
+          Copy-Item bindings/c/README.md artifacts/win-x64/
+          Compress-Archive -Path artifacts/win-x64/* -DestinationPath tokenizers-c-win-x64.zip
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-win-x64
+          path: tokenizers-c-win-x64.zip
+          retention-days: 7
+
+  # =======================
+  # macOS x64 Build
+  # =======================
+  build-macos-x64:
+    name: Build macOS x64
+    runs-on: macos-13  # Intel Mac
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build C bindings
+        working-directory: bindings/c
+        run: |
+          cargo build --release --target x86_64-apple-darwin
+          strip target/x86_64-apple-darwin/release/libtokenizers.dylib
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/osx-x64/native
+          cp bindings/c/target/x86_64-apple-darwin/release/libtokenizers.dylib artifacts/osx-x64/native/
+          cp bindings/c/README.md artifacts/osx-x64/
+          tar -czf tokenizers-c-osx-x64.tar.gz -C artifacts/osx-x64 .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-osx-x64
+          path: tokenizers-c-osx-x64.tar.gz
+          retention-days: 7
+
+  # =======================
+  # macOS ARM64 Build
+  # =======================
+  build-macos-arm64:
+    name: Build macOS ARM64
+    runs-on: macos-14  # M1/M2 Mac
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build C bindings
+        working-directory: bindings/c
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          strip target/aarch64-apple-darwin/release/libtokenizers.dylib
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/osx-arm64/native
+          cp bindings/c/target/aarch64-apple-darwin/release/libtokenizers.dylib artifacts/osx-arm64/native/
+          cp bindings/c/README.md artifacts/osx-arm64/
+          tar -czf tokenizers-c-osx-arm64.tar.gz -C artifacts/osx-arm64 .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-osx-arm64
+          path: tokenizers-c-osx-arm64.tar.gz
+          retention-days: 7
+
+  # =======================
+  # iOS ARM64 Build
+  # =======================
+  build-ios-arm64:
+    name: Build iOS ARM64
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build C bindings
+        working-directory: bindings/c
+        run: |
+          cargo build --release --target aarch64-apple-ios
+          strip target/aarch64-apple-ios/release/libtokenizers.a || true
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/ios-arm64/native
+          cp bindings/c/target/aarch64-apple-ios/release/libtokenizers.a artifacts/ios-arm64/native/
+          cp bindings/c/README.md artifacts/ios-arm64/
+          tar -czf tokenizers-c-ios-arm64.tar.gz -C artifacts/ios-arm64 .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-ios-arm64
+          path: tokenizers-c-ios-arm64.tar.gz
+          retention-days: 7
+
+  # =======================
+  # Android ARM64 Build
+  # =======================
+  build-android-arm64:
+    name: Build Android ARM64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+          local-cache: true
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Configure cargo for Android
+        run: |
+          mkdir -p ~/.cargo
+          cat >> ~/.cargo/config.toml << EOF
+          [target.aarch64-linux-android]
+          ar = "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          linker = "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          EOF
+
+      - name: Build C bindings
+        working-directory: bindings/c
+        run: |
+          cargo build --release --target aarch64-linux-android
+          $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/libtokenizers.so
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/android-arm64/native
+          cp bindings/c/target/aarch64-linux-android/release/libtokenizers.so artifacts/android-arm64/native/
+          cp bindings/c/README.md artifacts/android-arm64/
+          tar -czf tokenizers-c-android-arm64.tar.gz -C artifacts/android-arm64 .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-android-arm64
+          path: tokenizers-c-android-arm64.tar.gz
+          retention-days: 7
+
+  # =======================
+  # WASM Build
+  # =======================
+  build-wasm:
+    name: Build WASM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: bindings/c/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build WASM (standard)
+        working-directory: bindings/c
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/wasm/native
+          cp bindings/c/target/wasm32-unknown-unknown/release/tokenizers.wasm artifacts/wasm/native/ || true
+          cp bindings/c/target/wasm32-unknown-unknown/release/libtokenizers.wasm artifacts/wasm/native/ || true
+          cp bindings/c/README.md artifacts/wasm/
+          tar -czf tokenizers-c-wasm.tar.gz -C artifacts/wasm .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizers-c-wasm
+          path: tokenizers-c-wasm.tar.gz
+          retention-days: 7
+
+  # =======================
+  # Create GitHub Release
+  # =======================
+  create-release:
+    name: Create GitHub Release
+    needs:
+      - build-linux-x64
+      - build-windows-x64
+      - build-macos-x64
+      - build-macos-arm64
+      - build-ios-arm64
+      - build-android-arm64
+      - build-wasm
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/c-v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create checksums
+        run: |
+          cd artifacts
+          for file in */*.tar.gz */*.zip; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" >> checksums.txt
+            fi
+          done
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/c-v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: C Bindings v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## HuggingFace Tokenizers C Bindings v${{ steps.get_version.outputs.VERSION }}
+            
+            Cross-platform C bindings for the HuggingFace Tokenizers library.
+            
+            ### Supported Platforms
+            - ✅ Linux x64
+            - ✅ Windows x64
+            - ✅ macOS x64 (Intel)
+            - ✅ macOS ARM64 (Apple Silicon)
+            - ✅ iOS ARM64
+            - ✅ Android ARM64
+            - ✅ WebAssembly (WASM)
+            
+            ### Installation
+            
+            Download the appropriate archive for your platform and extract it to your project's native library directory.
+            
+            **Example for .NET projects:**
+            ```
+            runtimes/
+              linux-x64/native/libtokenizers.so
+              win-x64/native/tokenizers.dll
+              osx-x64/native/libtokenizers.dylib
+              osx-arm64/native/libtokenizers.dylib
+            ```
+            
+            ### Checksums (SHA-256)
+            See `checksums.txt` attachment for file integrity verification.
+            
+            ### Documentation
+            See the [README](https://github.com/${{ github.repository }}/blob/main/bindings/c/README.md) for usage instructions.
+            
+            ### ErgoX VecraX Integration
+            These bindings are used in the [ErgoX VecraX ML.NLP.Tokenizers](https://github.com/ergox/vecrax) library for high-performance tokenization in .NET applications.
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+            artifacts/checksums.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

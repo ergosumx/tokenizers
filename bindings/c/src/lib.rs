@@ -12,9 +12,9 @@ use tokenizers::PostProcessor;
 mod decoders;
 mod encoding;
 mod models;
-mod normalizers;
-mod post_processors;
-mod pre_tokenizers;
+// mod normalizers;  // Not implemented in C bindings
+// mod post_processors;  // Not implemented in C bindings
+// mod pre_tokenizers;  // Not implemented in C bindings
 
 pub struct CTokenizer {
     inner: tokenizers::Tokenizer,
