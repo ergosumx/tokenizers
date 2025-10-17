@@ -56,10 +56,15 @@ This repository contains the Rust C bindings for HuggingFace Tokenizers with aut
 6. Android ARM64
 7. WebAssembly
 
+**Pre-Release Testing**:
+- ✅ Runs all 16 Rust tests on Linux, Windows, macOS
+- ✅ Release is blocked if any tests fail
+- ✅ Test results uploaded as artifacts
+
 **Release Assets**:
 - Platform-specific binary archives (`.tar.gz`, `.zip`)
 - SHA-256 checksums file
-- Release notes with platform support
+- Release notes with test results and platform support
 
 ---
 
