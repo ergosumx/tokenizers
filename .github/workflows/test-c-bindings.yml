@@ -1,0 +1,155 @@
+name: Rust C Bindings Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'bindings/c/**'
+      - '.github/workflows/test-c-bindings.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'bindings/c/**'
+      - '.github/workflows/test-c-bindings.yml'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # =======================
+  # Rust Tests
+  # =======================
+  test:
+    name: Rust Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            bindings/c/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Rust tests
+        working-directory: bindings/c
+        run: cargo test --release --target ${{ matrix.target }} --verbose
+
+      - name: Build Rust library
+        working-directory: bindings/c
+        run: cargo build --release --target ${{ matrix.target }}
+
+  # =======================
+  # Code Coverage
+  # =======================
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate coverage
+        working-directory: bindings/c
+        run: |
+          cargo tarpaulin --verbose --all-features --workspace \
+            --timeout 120 --out Xml --out Html --output-dir coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: bindings/c/coverage/
+          retention-days: 30
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: bindings/c/coverage/cobertura.xml
+          flags: rust-c-bindings
+          name: rust-coverage
+          fail_ci_if_error: false
+
+  # =======================
+  # Test Summary
+  # =======================
+  test-summary:
+    name: Test Summary
+    needs: [test, coverage]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Generate test summary
+        run: |
+          echo "# 🧪 Rust C Bindings Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage**: ${{ needs.coverage.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ **Tests failed**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ **All Rust tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testStatus = '${{ needs.test.result }}';
+            const coverageStatus = '${{ needs.coverage.result }}';
+            
+            const statusEmoji = (status) => status === 'success' ? '✅' : '❌';
+            
+            const comment = `## 🧪 Rust C Bindings Test Results\n\n` +
+              `| Component | Status |\n` +
+              `|-----------|--------|\n` +
+              `| Tests (16 decoder tests) | ${statusEmoji(testStatus)} ${testStatus} |\n` +
+              `| Coverage | ${statusEmoji(coverageStatus)} ${coverageStatus} |\n\n` +
+              `[View detailed results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
