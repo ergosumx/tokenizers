@@ -1,0 +1,42 @@
+[package]
+name = "tokenizers-c"
+version = "0.22.2"
+authors = ["Huggingface/Nilay Parikh"]
+edition = "2021"
+license = "Apache-2.0"
+description = "C FFI bindings for tokenizers library - for .NET P/Invoke interop"
+
+[lib]
+name = "tokenizers"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Use onig (default, faster) for desktop platforms with full C toolchain
+[target.'cfg(not(any(target_family = "wasm", target_os = "ios", target_os = "android")))'.dependencies]
+tokenizers = { path = "../../tokenizers" }
+
+# Use fancy-regex (pure Rust) for WASM - no C dependencies
+[target.'cfg(target_family = "wasm")'.dependencies]
+tokenizers = { path = "../../tokenizers", default-features = false, features = [
+  "fancy-regex",
+  "unstable_wasm",
+] }
+
+# Use fancy-regex (pure Rust) for iOS - no onig_sys cross-compilation
+[target.'cfg(target_os = "ios")'.dependencies]
+tokenizers = { path = "../../tokenizers", default-features = false, features = [
+  "fancy-regex",
+] }
+
+# Use fancy-regex (pure Rust) for Android - no NDK onig_sys issues
+[target.'cfg(target_os = "android")'.dependencies]
+tokenizers = { path = "../../tokenizers", default-features = false, features = [
+  "fancy-regex",
+] }
+
+[features]
+default = []
