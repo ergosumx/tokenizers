@@ -40,3 +40,15 @@ tokenizers = { path = "../../tokenizers", default-features = false, features = [
 
 [features]
 default = []
+
+[package.metadata.tarpaulin]
+# Coverage output formats: XML (Cobertura for CI), HTML (for local viewing), Lcov (for editors)
+out-type = ["Xml", "Html", "Lcov"]
+# Output directory for coverage reports
+output-dir = "coverage"
+# Exclude test code from coverage
+exclude-files = ["*/tests/*", "*/test.rs"]
+# Run with --all-features
+all-features = true
+# Timeout for each test (seconds)
+timeout = 120

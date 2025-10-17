@@ -1,10 +1,4 @@
-<p align="center">
-    <br>
-    <img src="https://huggingface.co/landing/assets/tokenizers/tokenizers-logo.png" width="600"/>
-    <br>
-<p>
-
-# ErgoX Fork - C Bindings Development
+# ErgoX VecraX - HuggingFace Tokenizers C Bindings
 
 > **⚠️ EXPERIMENTAL - IN DEVELOPMENT**
 > 
@@ -54,15 +48,7 @@ ErgoX VecraX .NET library updates
 
 ---
 
-<p align="center">
-    <img alt="Build" src="https://github.com/huggingface/tokenizers/workflows/Rust/badge.svg">
-    <a href="https://github.com/huggingface/tokenizers/blob/main/LICENSE">
-        <img alt="GitHub" src="https://img.shields.io/github/license/huggingface/tokenizers.svg?color=blue&cachedrop">
-    </a>
-    <a href="https://pepy.tech/project/tokenizers">
-        <img src="https://pepy.tech/badge/tokenizers/week" />
-    </a>
-</p>
+## About HuggingFace Tokenizers
 
 Provides an implementation of today's most used tokenizers, with a focus on performance and
 versatility.

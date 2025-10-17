@@ -159,7 +159,7 @@ jobs:
         working-directory: bindings/c
         run: |
           cargo build --release --target x86_64-apple-darwin
-          strip target/x86_64-apple-darwin/release/libtokenizers.dylib
+          strip -x target/x86_64-apple-darwin/release/libtokenizers.dylib
 
       - name: Package artifacts
         run: |
@@ -214,7 +214,7 @@ jobs:
         working-directory: bindings/c
         run: |
           cargo build --release --target aarch64-apple-darwin
-          strip target/aarch64-apple-darwin/release/libtokenizers.dylib
+          strip -x target/aarch64-apple-darwin/release/libtokenizers.dylib
 
       - name: Package artifacts
         run: |
@@ -304,6 +304,7 @@ jobs:
 
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
+        id: setup-ndk
         with:
           ndk-version: r26d
           local-cache: true
@@ -331,15 +332,15 @@ jobs:
           mkdir -p ~/.cargo
           cat >> ~/.cargo/config.toml << EOF
           [target.aarch64-linux-android]
-          ar = "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-          linker = "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          ar = "${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          linker = "${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
           EOF
 
       - name: Build C bindings
         working-directory: bindings/c
         run: |
           cargo build --release --target aarch64-linux-android
-          $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/libtokenizers.so
+          ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/libtokenizers.so
 
       - name: Package artifacts
         run: |

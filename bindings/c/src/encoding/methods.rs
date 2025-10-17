@@ -1,139 +1,74 @@
 use std::os::raw::{c_char, c_int};
 use std::ptr;
 
-use crate::{CEncoding, set_last_error, set_status, read_optional_utf8};
-use tokenizers::utils::padding::PaddingDirection;
-use tokenizers::utils::truncation::TruncationDirection;
+use crate::{CEncoding, set_last_error, set_status};
 
 /// Merge multiple encodings into a single encoding
+/// 
+/// Note: This function creates a new merged encoding. The C API uses a flattened
+/// representation (CEncoding) which doesn't preserve all Encoding internals needed
+/// for efficient merging. Use the Rust API directly for complex operations.
 #[no_mangle]
 pub extern "C" fn tokenizers_encoding_merge(
-    encodings: *const *const CEncoding,
-    count: usize,
-    growing_offsets: bool,
-    len_ptr: *mut usize,
+    _encodings: *const *const CEncoding,
+    _count: usize,
+    _growing_offsets: bool,
+    _len_ptr: *mut usize,
     status: *mut c_int,
 ) -> *mut CEncoding {
-    if encodings.is_null() {
-        set_last_error("tokenizers_encoding_merge received null pointer");
-        set_status(status, 1);
-        return ptr::null_mut();
-    }
-
-    let encodings_slice = unsafe { std::slice::from_raw_parts(encodings, count) };
-    
-    // Convert CEncodings to Rust Encodings
-    let rust_encodings: Vec<tokenizers::Encoding> = Vec::with_capacity(count);
-    for encoding_ptr in encodings_slice {
-        if encoding_ptr.is_null() {
-            set_last_error("tokenizers_encoding_merge received null encoding pointer");
-            set_status(status, 2);
-            return ptr::null_mut();
-        }
-        
-        let c_encoding = unsafe { &**encoding_ptr };
-        // Convert CEncoding to Rust Encoding (we'll need to implement this conversion)
-        // For now, we'll skip this as it requires significant refactoring
-        // This is a placeholder
-    }
-
-    set_last_error("tokenizers_encoding_merge not fully implemented yet");
-    set_status(status, 3);
+    set_last_error("tokenizers_encoding_merge: not supported in C API - use Rust tokenizer.encode_batch() instead");
+    set_status(status, 1);
     ptr::null_mut()
 }
 
 /// Pad an encoding to the specified length
+///
+/// Note: CEncoding uses a flattened representation. Padding requires reconstructing
+/// the full Encoding object. For padding, use tokenizer.enable_padding() before encoding.
 #[no_mangle]
 pub extern "C" fn tokenizers_encoding_pad(
-    encoding: *mut CEncoding,
-    target_length: usize,
-    pad_id: u32,
-    pad_type_id: u32,
-    pad_token: *const c_char,
-    direction: c_int,
+    _encoding: *mut CEncoding,
+    _target_length: usize,
+    _pad_id: u32,
+    _pad_type_id: u32,
+    _pad_token: *const c_char,
+    _direction: c_int,
     status: *mut c_int,
 ) -> c_int {
-    if encoding.is_null() {
-        set_last_error("tokenizers_encoding_pad received null pointer");
-        set_status(status, 1);
-        return 0;
-    }
-
-    let direction = match direction {
-        0 => PaddingDirection::Left,
-        1 => PaddingDirection::Right,
-        other => {
-            set_last_error(&format!("tokenizers_encoding_pad unknown direction: {other}"));
-            set_status(status, 2);
-            return 0;
-        }
-    };
-
-    let pad_token_str = match read_optional_utf8(pad_token) {
-        Ok(Some(token)) => token,
-        Ok(None) => String::from("[PAD]"),
-        Err(_) => {
-            set_last_error("tokenizers_encoding_pad could not decode pad token");
-            set_status(status, 3);
-            return 0;
-        }
-    };
-
-    // Note: This is a simplified implementation
-    // Full implementation would need to convert CEncoding to Rust Encoding, call pad, and convert back
-    set_last_error("tokenizers_encoding_pad not fully implemented yet");
-    set_status(status, 4);
+    set_last_error("tokenizers_encoding_pad: not supported in C API - use tokenizer.enable_padding() before encoding");
+    set_status(status, 1);
     0
 }
 
 /// Truncate an encoding to the specified maximum length
+///
+/// Note: CEncoding uses a flattened representation. Truncation requires reconstructing
+/// the full Encoding object. For truncation, use tokenizer.with_truncation() before encoding.
 #[no_mangle]
 pub extern "C" fn tokenizers_encoding_truncate(
-    encoding: *mut CEncoding,
-    max_length: usize,
-    stride: usize,
-    direction: c_int,
+    _encoding: *mut CEncoding,
+    _max_length: usize,
+    _stride: usize,
+    _direction: c_int,
     status: *mut c_int,
 ) -> c_int {
-    if encoding.is_null() {
-        set_last_error("tokenizers_encoding_truncate received null pointer");
-        set_status(status, 1);
-        return 0;
-    }
-
-    let direction = match direction {
-        0 => TruncationDirection::Left,
-        1 => TruncationDirection::Right,
-        other => {
-            set_last_error(&format!("tokenizers_encoding_truncate unknown direction: {other}"));
-            set_status(status, 2);
-            return 0;
-        }
-    };
-
-    // Note: This is a simplified implementation
-    // Full implementation would need to convert CEncoding to Rust Encoding, call truncate, and convert back
-    set_last_error("tokenizers_encoding_truncate not fully implemented yet");
-    set_status(status, 3);
+    set_last_error("tokenizers_encoding_truncate: not supported in C API - use tokenizer.with_truncation() before encoding");
+    set_status(status, 1);
     0
 }
 
 /// Set the sequence ID for all tokens in the encoding
+///
+/// Note: CEncoding uses a flattened representation. This operation requires reconstructing
+/// the full Encoding object. Sequence IDs are set during encoding.
 #[no_mangle]
 pub extern "C" fn tokenizers_encoding_set_sequence_id(
-    encoding: *mut CEncoding,
-    sequence_id: usize,
+    _encoding: *mut CEncoding,
+    _sequence_id: usize,
     status: *mut c_int,
 ) -> c_int {
-    if encoding.is_null() {
-        set_last_error("tokenizers_encoding_set_sequence_id received null pointer");
-        set_status(status, 1);
-        return 0;
-    }
-
-    // Note: This is a simplified implementation
-    set_last_error("tokenizers_encoding_set_sequence_id not fully implemented yet");
-    set_status(status, 2);
+    set_last_error("tokenizers_encoding_set_sequence_id: not supported in C API - sequence IDs are set during encoding");
+    set_status(status, 1);
     0
 }
 
@@ -153,10 +88,37 @@ pub extern "C" fn tokenizers_encoding_word_to_tokens(
         return false;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_word_to_tokens not fully implemented yet");
-    set_status(status, 2);
-    false
+    let c_encoding = unsafe { &*encoding };
+    
+    // Find the first and last token with matching word_id and sequence_id
+    let mut first_token: Option<usize> = None;
+    let mut last_token: Option<usize> = None;
+    
+    for (i, (word_id_opt, seq_id_opt)) in c_encoding.word_ids.iter().zip(c_encoding.sequence_ids.iter()).enumerate() {
+        if let (Some(wid), Some(sid)) = (word_id_opt, seq_id_opt) {
+            if *wid == word_index && *sid == sequence_index {
+                if first_token.is_none() {
+                    first_token = Some(i);
+                }
+                last_token = Some(i);
+            }
+        }
+    }
+    
+    match (first_token, last_token) {
+        (Some(start), Some(end)) => {
+            unsafe {
+                *start_ptr = start;
+                *end_ptr = end + 1; // Rust uses exclusive end
+            }
+            set_status(status, 0);
+            true
+        }
+        _ => {
+            set_status(status, 0);
+            false
+        }
+    }
 }
 
 /// Get the character offsets for a specific word in a sequence
@@ -175,10 +137,37 @@ pub extern "C" fn tokenizers_encoding_word_to_chars(
         return false;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_word_to_chars not fully implemented yet");
-    set_status(status, 2);
-    false
+    let c_encoding = unsafe { &*encoding };
+    
+    // Find the first and last token with matching word_id and sequence_id
+    let mut first_offset: Option<(u32, u32)> = None;
+    let mut last_offset: Option<(u32, u32)> = None;
+    
+    for (i, (word_id_opt, seq_id_opt)) in c_encoding.word_ids.iter().zip(c_encoding.sequence_ids.iter()).enumerate() {
+        if let (Some(wid), Some(sid)) = (word_id_opt, seq_id_opt) {
+            if *wid == word_index && *sid == sequence_index {
+                if first_offset.is_none() {
+                    first_offset = c_encoding.offsets.get(i).copied();
+                }
+                last_offset = c_encoding.offsets.get(i).copied();
+            }
+        }
+    }
+    
+    match (first_offset, last_offset) {
+        (Some((start, _)), Some((_, end))) => {
+            unsafe {
+                *start_ptr = start as usize;
+                *end_ptr = end as usize;
+            }
+            set_status(status, 0);
+            true
+        }
+        _ => {
+            set_status(status, 0);
+            false
+        }
+    }
 }
 
 /// Get the sequence index for a specific token
@@ -194,10 +183,17 @@ pub extern "C" fn tokenizers_encoding_token_to_sequence(
         return -1;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_token_to_sequence not fully implemented yet");
-    set_status(status, 2);
-    -1
+    let c_encoding = unsafe { &*encoding };
+    match c_encoding.sequence_ids.get(token_index) {
+        Some(Some(seq_id)) => {
+            set_status(status, 0);
+            *seq_id as i32
+        }
+        _ => {
+            set_status(status, 0);
+            -1
+        }
+    }
 }
 
 /// Get the character offsets for a specific token
@@ -216,10 +212,23 @@ pub extern "C" fn tokenizers_encoding_token_to_chars(
         return false;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_token_to_chars not fully implemented yet");
-    set_status(status, 2);
-    false
+    let c_encoding = unsafe { &*encoding };
+    
+    match (c_encoding.sequence_ids.get(token_index), c_encoding.offsets.get(token_index)) {
+        (Some(Some(seq_id)), Some((start, end))) => {
+            unsafe {
+                *sequence_ptr = *seq_id;
+                *start_ptr = *start as usize;
+                *end_ptr = *end as usize;
+            }
+            set_status(status, 0);
+            true
+        }
+        _ => {
+            set_status(status, 0);
+            false
+        }
+    }
 }
 
 /// Get the word index for a specific token
@@ -237,10 +246,22 @@ pub extern "C" fn tokenizers_encoding_token_to_word(
         return false;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_token_to_word not fully implemented yet");
-    set_status(status, 2);
-    false
+    let c_encoding = unsafe { &*encoding };
+    
+    match (c_encoding.sequence_ids.get(token_index), c_encoding.word_ids.get(token_index)) {
+        (Some(Some(seq_id)), Some(Some(word_id))) => {
+            unsafe {
+                *sequence_ptr = *seq_id;
+                *word_ptr = *word_id;
+            }
+            set_status(status, 0);
+            true
+        }
+        _ => {
+            set_status(status, 0);
+            false
+        }
+    }
 }
 
 /// Get the token index for a character position
@@ -257,9 +278,23 @@ pub extern "C" fn tokenizers_encoding_char_to_token(
         return -1;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_char_to_token not fully implemented yet");
-    set_status(status, 2);
+    let c_encoding = unsafe { &*encoding };
+    
+    // Find token containing this character position in the specified sequence
+    for (i, (seq_id_opt, (start, end))) in c_encoding.sequence_ids.iter().zip(c_encoding.offsets.iter()).enumerate() {
+        if let Some(sid) = seq_id_opt {
+            if *sid == sequence_index {
+                let start_pos = *start as usize;
+                let end_pos = *end as usize;
+                if char_pos >= start_pos && char_pos < end_pos {
+                    set_status(status, 0);
+                    return i as i32;
+                }
+            }
+        }
+    }
+    
+    set_status(status, 0);
     -1
 }
 
@@ -277,8 +312,27 @@ pub extern "C" fn tokenizers_encoding_char_to_word(
         return -1;
     }
 
-    // Placeholder implementation
-    set_last_error("tokenizers_encoding_char_to_word not fully implemented yet");
-    set_status(status, 2);
+    let c_encoding = unsafe { &*encoding };
+    
+    // Find token containing this character position in the specified sequence, then get its word ID
+    for (seq_id_opt, word_id_opt, (start, end)) in c_encoding.sequence_ids.iter()
+        .zip(c_encoding.word_ids.iter())
+        .zip(c_encoding.offsets.iter())
+        .map(|((s, w), o)| (s, w, o)) {
+        if let Some(sid) = seq_id_opt {
+            if *sid == sequence_index {
+                let start_pos = *start as usize;
+                let end_pos = *end as usize;
+                if char_pos >= start_pos && char_pos < end_pos {
+                    if let Some(wid) = word_id_opt {
+                        set_status(status, 0);
+                        return *wid as i32;
+                    }
+                }
+            }
+        }
+    }
+    
+    set_status(status, 0);
     -1
 }

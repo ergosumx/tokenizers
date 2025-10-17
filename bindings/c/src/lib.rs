@@ -10,7 +10,6 @@ use tokenizers::utils::truncation::{TruncationDirection, TruncationParams, Trunc
 use tokenizers::PostProcessor;
 
 mod decoders;
-mod encoding;
 mod models;
 // mod normalizers;  // Not implemented in C bindings
 // mod post_processors;  // Not implemented in C bindings
@@ -1134,6 +1133,7 @@ pub extern "C" fn tokenizers_encoding_get_overflowing(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ptr;
 
     #[test]
     fn null_pointer_behaves() {
