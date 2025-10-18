@@ -208,7 +208,7 @@ or the [quicktour](https://huggingface.co/docs/tokenizers/quicktour) to learn mo
 - Based on HuggingFace Tokenizers: `v0.20.4`
 - C bindings version: `c-v0.1.0` (experimental)
 - Platform support: 7 platforms (Linux, Windows, macOS x2, iOS, Android, WASM)
-- Test coverage: 179/180 tests passing (99.4%)
+- Test coverage: 184/185 tests passing (99.5%)
 
 ### Upstream Synchronization
 

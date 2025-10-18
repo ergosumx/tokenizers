@@ -166,11 +166,7 @@ impl BpeBuilder {
         };
 
         let vocab = self.config.vocab;
-        let prefix_len = if let Some(prefix) = &self.config.continuing_subword_prefix {
-            prefix.len()
-        } else {
-            0
-        };
+        let continuing_prefix = self.config.continuing_subword_prefix.clone();
         let merge_map: MergeMap = self
             .config
             .merges
@@ -183,10 +179,24 @@ impl BpeBuilder {
                 let b_id = vocab
                     .get(&b)
                     .ok_or_else(|| Error::MergeTokenOutOfVocabulary(b.to_owned()))?;
-                let new_token = format!("{}{}", a, &b[prefix_len..]);
+                let trimmed_candidate = continuing_prefix
+                    .as_deref()
+                    .and_then(|prefix| b.strip_prefix(prefix))
+                    .map(|stripped| format!("{}{}", a, stripped));
+
+                let default_candidate = format!("{}{}", a, b);
+                let new_token = if let Some(candidate) = trimmed_candidate {
+                    if vocab.contains_key(&candidate) {
+                        candidate
+                    } else {
+                        default_candidate
+                    }
+                } else {
+                    default_candidate
+                };
                 let new_id = vocab
                     .get(&new_token)
-                    .ok_or(Error::MergeTokenOutOfVocabulary(new_token))?;
+                    .ok_or_else(|| Error::MergeTokenOutOfVocabulary(new_token.clone()))?;
                 Ok(((*a_id, *b_id), (i as u32, *new_id)))
             })
             .collect::<Result<MergeMap>>()?;

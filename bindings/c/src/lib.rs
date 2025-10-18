@@ -334,6 +334,45 @@ pub extern "C" fn tokenizers_encoding_get_tokens(
             unsafe {
                 *buffer.add(index) = c_string.into_raw();
             }
+        } else {
+            unsafe {
+                *buffer.add(index) = ptr::null_mut();
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn tokenizers_encoding_get_tokens_json(
+    encoding: *const CEncoding,
+    status: *mut c_int,
+) -> *mut c_char {
+    if encoding.is_null() {
+        set_last_error("tokenizers_encoding_get_tokens_json received null pointer");
+        set_status(status, 1);
+        return ptr::null_mut();
+    }
+
+    let encoding = unsafe { &*encoding };
+    match serde_json::to_string(&encoding.tokens) {
+        Ok(json) => match CString::new(json) {
+            Ok(c_string) => {
+                clear_last_error();
+                set_status(status, 0);
+                c_string.into_raw()
+            }
+            Err(_) => {
+                set_last_error("tokenizers_encoding_get_tokens_json failed to allocate CString");
+                set_status(status, 2);
+                ptr::null_mut()
+            }
+        },
+        Err(err) => {
+            set_last_error(&format!(
+                "tokenizers_encoding_get_tokens_json serialization failed: {err}"
+            ));
+            set_status(status, 3);
+            ptr::null_mut()
         }
     }
 }
@@ -1133,10 +1172,40 @@ pub extern "C" fn tokenizers_encoding_get_overflowing(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::CStr;
     use std::ptr;
 
     #[test]
     fn null_pointer_behaves() {
         assert!(ptr::null_mut::<CTokenizer>().is_null());
+    }
+
+    #[test]
+    fn encoding_tokens_json_serializes_control_characters() {
+        let encoding = tokenizers::Encoding::new(
+            vec![0],
+            vec![0],
+            vec!['\u{0000}'.to_string()],
+            vec![Some(0)],
+            vec![(0, 1)],
+            vec![0],
+            vec![1],
+            Vec::new(),
+            Default::default(),
+        );
+
+        let c_encoding = CEncoding::from_encoding(encoding);
+        let raw = Box::into_raw(Box::new(c_encoding));
+        let mut status = -1;
+
+        let tokens_ptr = tokenizers_encoding_get_tokens_json(raw, &mut status);
+        assert_eq!(status, 0);
+        assert!(!tokens_ptr.is_null());
+
+        let tokens_json = unsafe { CStr::from_ptr(tokens_ptr) }.to_str().unwrap();
+        assert_eq!(tokens_json, "[\"\\u0000\"]");
+
+        tokenizers_free_string(tokens_ptr);
+        tokenizers_encoding_free(raw);
     }
 }

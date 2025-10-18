@@ -290,7 +290,7 @@ For changes to the core tokenizers library (Rust implementation, Python bindings
 These C bindings are the foundation for the **ErgoX VecraX ML.NLP.Tokenizers** library, which provides:
 - High-level C# API for .NET developers
 - NuGet package distribution
-- Comprehensive test suite (179/180 tests passing)
+- Comprehensive test suite (184/185 tests passing)
 - Production-ready implementation
 - Native library loading for all platforms
 

@@ -8,6 +8,7 @@ pub mod bytelevel;
 pub mod ctc;
 pub mod fuse;
 pub mod metaspace;
+pub mod sequence;
 pub mod replace;
 pub mod strip;
 pub mod wordpiece;
